@@ -16,10 +16,11 @@ module.exports = merge(baseWebpackConfig, {
     rules: utils.styleLoaders({ sourceMap: config.dev.cssSourceMap })
   },
   // cheap-module-eval-source-map is faster for development
-  devtool: '#cheap-module-eval-source-map',
+  //devtool: '#cheap-module-eval-source-map',
   plugins: [
     new webpack.DefinePlugin({
-      'process.env': config.dev.env
+      'process.env': config.dev.env,
+      __DEV__:true,
     }),new webpack.ProvidePlugin({
       $: "jquery",
       jQuery: "jquery",
@@ -28,6 +29,9 @@ module.exports = merge(baseWebpackConfig, {
     // https://github.com/glenjamin/webpack-hot-middleware#installation--usage
     new webpack.HotModuleReplacementPlugin(),
     new webpack.NoEmitOnErrorsPlugin(),
+    new webpack.optimize.CommonsChunkPlugin({
+      names: ['vendor', 'manifest'],
+    }),
     // https://github.com/ampedandwired/html-webpack-plugin
     new HtmlWebpackPlugin({
       filename: 'index.html',

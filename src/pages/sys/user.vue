@@ -24,33 +24,38 @@
         style="width: 100%"
         v-loading="listLoading"
         @selection-change="handleSelectionChange">
+        <!--checkbox 适当加宽，否则IE下面有省略号 https://github.com/ElemeFE/element/issues/1563-->
         <el-table-column
           prop="id"
           type="selection"
-          width="45">
+          width="50">
+        </el-table-column>
+        <el-table-column
+          label="照片" width="76">
+          <template slot-scope="scope">
+            <img :src='scope.row.avatar' style="height: 35px;vertical-align: middle;" alt="">
+          </template>
         </el-table-column>
         <el-table-column
           prop="name"
           label="名称">
         </el-table-column>
         <el-table-column
-          prop="loginName"
+          prop="nickName"
           label="登录用户名">
-        </el-table-column>
-        <el-table-column
-          prop="photo"
-          label="照片">
         </el-table-column>
         <el-table-column
           prop="email"
           label="邮箱">
         </el-table-column>
         <el-table-column
-          prop="status"
           label="状态">
+          <template slot-scope="scope">
+            {{ scope.row.status===1 ? '已激活' : '未激活' }}
+          </template>
         </el-table-column>
         <el-table-column label="操作" width="285">
-          <template scope="scope">
+          <template slot-scope="scope">
             <el-button
               size="small"
               type="default"
@@ -114,6 +119,7 @@
   import panel from "../../components/panel.vue"
   import * as api from "../../api"
   import testData from "../../../static/data/data.json"
+  import * as sysApi from '../../services/sys'
 
   export default {
     components: {
@@ -154,15 +160,17 @@
         this.currentRow = row;
         this.dialogVisible = true;
         if (this.roleTree.length <= 0) {
-          this.$http.get( api.TEST_DATA + "?selectChildren=true")
+          sysApi.roleList({selectChildren:true})
             .then(res => {
-              this.roleTree = res.data.roleList
+              this.roleTree = res
             })
         }
         this.$http.get(api.SYS_USER_ROLE + "?id=" + row.id)
           .then(res => {
             this.$refs.roleTree.setCheckedKeys(res.data);
-          })
+          }).catch(err=>{
+
+        })
       },
       configUserRoles(){
         let checkedKeys = this.$refs.roleTree.getCheckedKeys();
@@ -189,18 +197,15 @@
         });
       },
       loadData(){
-        var d = {"offset":0,"limit":2147483647,"total":1,"size":10,"pages":1,"current":1,"searchCount":true,"optimizeCount":false,"orderByField":null,"records":[
-            {"id":1,"delFlag":0,"companyId":1,"officeId":2,"loginName":"admin","password":"",
-              "no":"0001","name":"系统管理员","email":"lanux@foxmail.com","phone":"731","mobile":"13769999998",
-              "userType":"1","photo":null,"loginIp":"127.0.0.1","loginDate":1453188598000,"loginFlag":"1",
-              "remarks":"最高管理员","status":1,"token":null}],"condition":{},"asc":true,"offsetCurrent":0};
-        this.tableData.rows = d.records;
-//      this.tableData.pagination.total = d.total;
-        //        this.$http.get(api.SYS_USER_PAGE + "?key=" + this.searchKey + "&pageSize=" + this.tableData.pagination.pageSize + "&pageNo=" + this.tableData.pagination.pageNo)
-//          .then(res => {
-//            this.tableData.rows = res.data.records;
-//            this.tableData.pagination.total = res.data.total;
-//          });
+          sysApi.userList({
+            key: this.searchKey,
+            pageSize: this.tableData.pagination.pageSize,
+            pageNo: this.tableData.pagination.pageNo
+          })
+          .then(res => {
+            this.tableData.rows = res.records;
+            this.tableData.pagination.total = res.total;
+          });
       }
     },
     created(){

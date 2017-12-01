@@ -7,6 +7,7 @@ module.exports = {
     index: path.resolve(__dirname, '../dist/index.html'),
     assetsRoot: path.resolve(__dirname, '../dist'),
     assetsSubDirectory: 'static',
+    // assetsPublicPath: '/',
     assetsPublicPath: '/Vue-Admin/',
     productionSourceMap: true,
     // Gzip off by default as many popular static hosts such as
@@ -24,10 +25,19 @@ module.exports = {
   dev: {
     env: require('./dev.env'),
     port: 9000,
-    autoOpenBrowser: true,
+    autoOpenBrowser: false,
     assetsSubDirectory: 'static',
     assetsPublicPath: '/',
-    proxyTable: {},
+    proxyTable: {
+      // http://localhost:9000/api/menuList => http://localhost:3000/menuList
+      '/api': {
+        target: 'http://127.0.0.1:3000',
+        changeOrigin: true,
+        pathRewrite: {
+          '^/api' : '',     // rewrite path
+        },
+      }
+    },
     // CSS Sourcemaps off by default because relative paths are "buggy"
     // with this option, according to the CSS-Loader README
     // (https://github.com/webpack/css-loader#sourcemaps)

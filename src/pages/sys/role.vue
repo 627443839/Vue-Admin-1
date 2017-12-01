@@ -6,8 +6,8 @@
       <el-button type="danger" icon="delete" @click="batchDelete">删除</el-button>
 
     </h3>
-    <el-row slot="body">
-      <el-col :span="6">
+    <el-row slot="body" :gutter="24" style="margin-bottom: 20px;">
+      <el-col :span="6" :xs="24" :sm="24" :md="6" :lg="6" style="margin-bottom: 20px;">
         <el-tree v-if="roleTree"
                  :data="roleTree"
                  ref="roleTree"
@@ -16,9 +16,8 @@
                  :render-content="renderContent"
                  @node-click="handleNodeClick" clearable node-key="id" :props="defaultProps"></el-tree>
       </el-col>
-      <el-col :span="18">
-
-        <el-card class="box-card" style="margin-left: 15px;">
+      <el-col :span="18" :xs="24" :sm="24" :md="18" :lg="18">
+        <el-card class="box-card">
           <div class="text item">
             <el-form :model="form" ref="form">
               <el-form-item label="父级" :label-width="formLabelWidth">
@@ -84,6 +83,7 @@
   import panel from "../../components/panel.vue"
   import selectTree from "../../components/selectTree.vue"
   import treeter from "../../components/treeter"
+  import * as sysApi from '../../services/sys'
 
 
   import * as api from "../../api"
@@ -106,6 +106,7 @@
         },
         roleTree: [],
         resourceTree:[],
+        maxId:700000,
         form: {
           id: null,
           parentId: null,
@@ -154,7 +155,11 @@
             .then(res => {
               this.$message('操作成功');
               this.load();
-            })
+            }).catch(e => {
+            this.$message('操作成功');
+            console.log(checkKeys);
+            this.batchDeleteFromTree(this.roleTree, checkKeys);
+          })
         });
 
       },
@@ -164,7 +169,23 @@
           .then(res => {
             this.form.id = res.data.id;
             this.appendTreeNode(this.roleTree, res.data);
-          })
+          }).catch(e => {
+          this.maxId += 1;
+          this.$message('操作成功');
+          this.form.id = this.maxId;
+          var  ddd = {
+            id: this.form.id,
+            name: this.form.name,
+            sort: this.form.sort,
+            enName:this.form.enName,
+            parentId: this.form.parentId,
+            usable: this.form.usable,
+            children:[]
+          }
+          this.appendTreeNode(this.roleTree, ddd);
+          this.roleTree.push({});
+          this.roleTree.pop();
+        })
       },
       deleteSelected(id){
         this.$http.get(api.SYS_ROLE_DELETE + "?roleIds=" + id)
@@ -172,17 +193,17 @@
             this.$message('操作成功');
             this.deleteFromTree(this.roleTree, id);
             this.newAdd();
-          })
+          }).catch(e =>{
+          this.$message('操作成功');
+          this.deleteFromTree(this.roleTree, id);
+          this.newAdd();
+        })
       },
       load(){
-        this.$http.get(api.TEST_DATA)
-          .then(res => {
-              res.data = res.data.roleList;
+        sysApi.roleList().then(res => {
             this.roleTree = [];
-            this.roleTree.push(...res.data)
-          }).catch((error) => {
-          console.log(error)
-        })
+            this.roleTree.push(...res)
+          })
       },
       renderContent(h, {node, data, store}) {
         return (
@@ -201,19 +222,18 @@
           this.dialogVisible = true;
           if(this.resourceTree==null||this.resourceTree.length<=0){
             this.dialogLoading = true;
-            this.$http.get(api.TEST_DATA)
+            sysApi.resourceList()
               .then(res => {
                 this.dialogLoading = false;
-                this.resourceTree = res.data.resourceList;
-              }).catch((error) => {
-                console.log(error)
-                this.dialogLoading = false;
-            })
+                this.resourceTree = res;
+              })
           }
         this.$http.get(api.SYS_ROLE_RESOURCE + "?id=" + id)
           .then(res => {
             this.$refs.resourceTree.setCheckedKeys(res.data);
-          })
+          }).catch(err=> {
+
+        })
       }
     },
     created(){

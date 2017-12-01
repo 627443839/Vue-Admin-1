@@ -2,27 +2,32 @@
   <div class="wrapper fixed">
     <vue-progress-bar></vue-progress-bar>
     <imp-header></imp-header>
-    <side-menu :show="sidebar.opened && !sidebar.hidden"></side-menu>
-    <div class="content-wrapper">
-      <section class="content">
-        <transition mode="out-in" enter-active-class="fadeIn" leave-active-class="fadeOut" appear>
-          <router-view></router-view>
-        </transition>
-      </section>
-      <imp-footer></imp-footer>
-    </div>
+    <side-menu></side-menu>
+      <div class="content-wrapper" :class="{ slideCollapse: sidebar.collapsed,mobileSide:device.isMobile}">
+        <el-scrollbar tag="div" wrapClass="content-scrollbar">
+          <section class="content">
+            <el-breadcrumb separator="/" style="margin-bottom: 20px;">
+              <template v-for="child in currentMenus">
+                <el-breadcrumb-item :to="{ path: child.href }">{{child.name}}</el-breadcrumb-item>
+              </template>
+            </el-breadcrumb>
+            <transition mode="out-in" enter-active-class="fadeIn" leave-active-class="fadeOut" appear>
+              <router-view></router-view>
+            </transition>
+            <imp-footer></imp-footer>
+          </section>
+        </el-scrollbar>
+      </div>
   </div>
 </template>
 
 <script>
-
   import Vue from 'vue'
   import sideMenu from './components/sideMenu.vue'
   import impHeader from "./pages/layout/header.vue"
   import impFooter from "./pages/layout/footer.vue"
-  require("jquery-slimscroll/jquery.slimscroll.js")
   import {mapGetters, mapActions,mapMutations} from 'vuex'
-  import * as types from "./store/mutation-types"
+  import types from "./store/mutation-types"
   import 'animate.css'
 
   export default {
@@ -30,25 +35,32 @@
     components: {
       sideMenu,
       impFooter,
-      impHeader
+      impHeader,
     },
     computed: {
         ...mapGetters({
-            sidebar: 'sidebar'
-        })
+            sidebar: 'sidebar',
+            device:'device',
+            currentMenus:'currentMenus',
+        }),
+
     },
     data: function () {
       return {
         active: true,
         headerFixed: true,
-        breadcrumb: []
+        breadcrumb: [],
       }
     },
     methods: {
       ...mapMutations({
           toggleDevice: types.TOGGLE_DEVICE,
-          toggleSidebar: types.TOGGLE_SIDEBAR
+          toggleSidebar: types.TOGGLE_SIDEBAR,
+          toggleSidebarShow: types.TOGGLE_SIDEBAR_SHOW,
       }),
+      ...mapActions({
+        changeCurrentMenu: 'changeCurrentMenu' // 映射 this.changeCurrentMenu() 为 this.$store.dispatch('changeCurrentMenu')
+      })
     },
     watch: {
       '$route': function (to, from) {
@@ -62,7 +74,12 @@
           let rect = body.getBoundingClientRect()
           let isMobile = rect.width < WIDTH
           this.toggleDevice(isMobile);
-          this.toggleSidebar(!isMobile)
+          if (isMobile){
+            this.toggleSidebarShow(false);
+            this.toggleSidebar(false);
+          }else{
+            this.toggleSidebarShow(true);
+          }
         }
       }
       document.addEventListener('visibilitychange', handler)
@@ -84,6 +101,7 @@
 //          // parse meta tags
 //          this.$Progress.parseMeta(meta)
 //        }
+        this.$store.dispatch('changeCurrentMenu',to);
         //  start the progress bar
         this.$Progress.start()
         //  continue to next page
@@ -100,37 +118,12 @@
     }
   }
 
-  // 在状态改变后和断言 DOM 更新前等待一刻
-  Vue.nextTick(() => {
-    if (typeof $.fn.slimScroll != 'undefined') {
-      //Destroy if it exists
-      $(".sidebar").slimScroll({destroy: true}).height("auto");
-      //Add slimscroll
-      $(".sidebar").slimScroll({
-        height: ($(window).height() - $(".main-header").height()) + "px",
-        color: "rgba(0,0,0,0.2)",
-        size: "3px"
-      });
-    }
-    $(window).on("resize", function () {
-      if (typeof $.fn.slimScroll != 'undefined') {
-        //Destroy if it exists
-        $(".sidebar").slimScroll({destroy: true}).height("auto");
-        //Add slimscroll
-        $(".sidebar").slimScroll({
-          height: ($(window).height() - $(".main-header").height()) + "px",
-          color: "rgba(0,0,0,0.2)",
-          size: "3px"
-        });
-      }
-    });
-  })
 </script>
 
 <style>
 
   .animated {
-    animation-duration: .5s;
+    animation-duration: .2s;
   }
 
   blockquote, body, dd, dl, dt, fieldset, figure, h1, h2, h3, h4, h5, h6, hr, html, iframe, legend, li, ol, p, pre, textarea, ul {
@@ -151,17 +144,27 @@
     -o-transition: -o-transform 0.3s ease-in-out, margin 0.3s ease-in-out;
     transition: transform 0.3s ease-in-out, margin 0.3s ease-in-out;
     margin-left: 230px;
-    z-index: 820;
     padding-top: 50px;
-    min-height: 100%;
-    z-index: 800;
   }
-  @media (max-width: 800px) {
-    .content-wrapper{
-      margin-left: 0px;
-    }
+
+  .content-scrollbar{
+    height: calc(100vh - 50px);
   }
+
+  .content-wrapper .el-scrollbar__bar.is-vertical{
+    display: none;
+  }
+
   .content-wrapper .content {
     padding: 1.25rem;
   }
+
+  .content-wrapper.slideCollapse{
+    margin-left: 44px;
+  }
+
+  .content-wrapper.mobileSide{
+    margin-left: 0px;
+  }
+
 </style>

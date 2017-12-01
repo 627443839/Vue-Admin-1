@@ -1,10 +1,9 @@
 import Vue from "vue";
 import Vuex from "vuex";
-import * as types from "./mutation-types";
-import defaultMenu from "./default-menu";
-// import app from './modules/app'
-// import menu from './modules/menu'
+import types from "./mutation-types";
+import defaultValue from "../services/default";
 import * as api from "../api";
+import { getCurrentMenu, getSessionKey } from '../common/utils'
 
 Vue.use(Vuex)
 
@@ -16,21 +15,21 @@ const store = new Vuex.Store({
     menuList: state => state.menuList,
     sidebar: state => state.sidebar,
     userInfo:state => state.userInfo,
+    device:state => state.device,
+    currentMenus:state => state.currentMenus,
   },
-  // modules: {
-  //   app,
-  //   menu
-  // },
   state: {
     loading: false,
     menuList: {},
     sidebar: {
-      opened: true
+      collapsed: getSessionKey('state.sidebar.collapsed','false')==='true',
+      show: getSessionKey('state.sidebar.show','true')==='true',
     },
     device: {
       isMobile: false
     },
-    userInfo:{name:'佚名'}
+    userInfo:{name:'佚名'},
+    currentMenus:[],
   },
   mutations: {
     //只能同步的函数
@@ -43,20 +42,35 @@ const store = new Vuex.Store({
     [types.LOAD_MENU] (state, menu) {
       state.menuList = menu;
     },
+    [types.LOAD_CURRENT_MENU] (state, menu) {
+      state.currentMenus = menu;
+    },
     [types.SET_USER_INFO] (state, info) {
       state.userInfo = info;
     },
-    [types.TOGGLE_SIDEBAR] (state, open) {
-      if (open == null) open = !state.sidebar.opened;
-      state.sidebar.opened = open;
-    }
+    [types.TOGGLE_SIDEBAR] (state, collapsed) {
+      if (collapsed == null) collapsed = !state.sidebar.collapsed;
+      state.sidebar.collapsed = collapsed;
+      window.sessionStorage.setItem("state.sidebar.collapsed",collapsed)
+    },
+    [types.TOGGLE_SIDEBAR_SHOW] (state,show) {
+      if (show == null) state.sidebar.show = !state.sidebar.show;
+      else{
+        state.sidebar.show = show;
+      }
+      window.sessionStorage.setItem("state.sidebar.show",state.sidebar.show)
+    },
   }, actions: {
     //异步的函数
     toggleLoading: ({commit}) => commit(types.TOGGLE_LOADING),
     loadMenuList: ({commit}) => {
-      Vue.axios.get(api.TEST_DATA).then(res => {
-        commit(types.LOAD_MENU, res.data.menuList);
-      }).catch(exp => commit(types.LOAD_MENU, defaultMenu));
+      Vue.axios.get(api.SYS_MENU_LIST).then(res => {
+        commit(types.LOAD_MENU, res.data);
+      }).catch(exp => commit(types.LOAD_MENU, defaultValue.menuList));
+    },
+    changeCurrentMenu: ({state,commit},{path,matched,fullPath}) => {
+      const a = getCurrentMenu(fullPath,state.menuList);
+      commit(types.LOAD_CURRENT_MENU, a.reverse());
     }
   },
 })

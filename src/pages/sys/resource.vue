@@ -5,8 +5,8 @@
       <el-button type="primary" icon="plus" @click="newAdd">新增</el-button>
       <el-button type="danger" icon="delete" @click="batchDelete">删除</el-button>
     </h3>
-    <el-row slot="body">
-      <el-col :span="6">
+    <el-row slot="body" style="margin-bottom: 20px;" :gutter="24">
+      <el-col :span="6" :xs="24" :sm="24" :md="6" :lg="6" style="margin-bottom: 20px;">
         <el-tree v-if="resourceTree"
                  ref="resourceTree"
                  :data="resourceTree"
@@ -15,8 +15,8 @@
                  :render-content="renderContent"
                  @node-click="handleNodeClick" clearable node-key="id" :props="defaultProps"></el-tree>
       </el-col>
-      <el-col :span="18">
-        <el-card class="box-card" style="margin-left: 15px">
+      <el-col :span="18" :xs="24" :sm="24" :md="18" :lg="18">
+        <el-card class="box-card">
           <!--<div slot="header" class="clearfix">-->
           <!--<el-button type="primary" style="float: right;" @click="dialogFormVisible = true"><i class="el-icon-plus"></i></el-button>-->
           <!--&lt;!&ndash;<el-button type="primary" @click="editSelectedMenu" icon="edit"></el-button>&ndash;&gt;-->
@@ -70,6 +70,7 @@
   import selectTree from "../../components/selectTree.vue"
   import treeter from "../../components/treeter"
   import merge from 'element-ui/src/utils/merge';
+  import * as sysApi from '../../services/sys'
 
   import * as api from "../../api"
 
@@ -88,6 +89,7 @@
           id: "id",
         },
         resourceTree: [],
+        maxId:700000,
         form: {
           id: null,
           parentId: null,
@@ -127,7 +129,11 @@
             this.$message('操作成功');
             this.deleteFromTree(this.resourceTree, this.form.id);
             this.newAdd();
-          })
+          }).catch(e =>{
+          this.$message('操作成功');
+          this.deleteFromTree(this.resourceTree, this.form.id);
+          this.newAdd();
+        })
       },
       batchDelete(){
         var checkKeys = this.$refs.resourceTree.getCheckedKeys();
@@ -144,7 +150,11 @@
             .then(res => {
               this.$message('操作成功');
               this.load();
-            })
+            }).catch(e => {
+            this.$message('操作成功');
+            console.log(checkKeys);
+            this.batchDeleteFromTree(this.resourceTree, checkKeys);
+          })
         });
 
       },
@@ -158,24 +168,42 @@
               this.$message('操作成功');
               this.form.id = res.data.id;
               this.appendTreeNode(this.resourceTree, res.data);
-            })
+            }).catch(e => {
+            this.maxId += 1;
+            this.$message('操作成功');
+            this.form.id = this.maxId;
+            var  ddd = {
+              id: this.form.id,
+              name: this.form.name,
+              sort: this.form.sort,
+              type:this.form.type,
+              code:this.form.code,
+              remarks: this.form.remarks,
+              parentId: this.form.parentId,
+              usable: this.form.usable,
+              children:[],
+            }
+            this.appendTreeNode(this.resourceTree, ddd);
+            this.resourceTree.push({});
+            this.resourceTree.pop();
+          })
         } else {
           this.$http.post(api.SYS_RESOURCE_UPDATE, this.form)
             .then(res => {
               this.$message('操作成功');
               this.updateTreeNode(this.resourceTree, res.data);
-            })
+            }).catch(e=>{
+            this.$message('操作成功');
+            this.updateTreeNode(this.resourceTree, merge({},this.form));
+          })
         }
       },
       load(){
-        this.$http.get(api.TEST_DATA)
+        sysApi.resourceList()
           .then(res=>{
-            res.data = res.data.resourceList;
             this.resourceTree = [];
-            this.resourceTree.push(...res.data)
-          }).catch((error) => {
-          console.log(error)
-        })
+            this.resourceTree.push(...res)
+          })
       }
     },
     created(){
